@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulut Maliyeti Anomali Tespit ve Kök Neden Analiz Arayüzü</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Menü Navigasyon -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon"></div>
+                <h2>BulutMaliyet</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard-tab" id="btn-nav-dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    <span>Pano (Dashboard)</span>
+                </button>
+                <button class="nav-item" data-tab="analysis-tab" id="btn-nav-analysis">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                    <span>Model Analizi</span>
+                </button>
+                <button class="nav-item" data-tab="alerts-tab" id="btn-nav-alerts">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 4.36 6 6.92 6 10v5l-2 2v1h16v-1l-2-2z"/></svg>
+                    <span>Anomali Günlüğü</span>
+                    <span class="badge" id="alert-badge-count">0</span>
+                </button>
+                <button class="nav-item" data-tab="simulator-tab" id="btn-nav-simulator">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/></svg>
+                    <span>Simülatör</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar">HC</div>
+                    <div class="user-info">
+                        <span class="name">Hızır Çiçekdağ</span>
+                        <span class="role">Bulut Yöneticisi</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Ana Panel -->
+        <main class="main-content">
+            <!-- Başlık -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="page-title">Anomali Panosu</h1>
+                    <p class="subtitle" id="page-subtitle">Gerçek Zamanlı AWS Faturalandırma Analitiği</p>
+                </div>
+                <div class="header-actions">
+                    <div class="model-params glass">
+                        <div class="param-group">
+                            <label for="param-stl">STL Eşiği:</label>
+                            <input type="number" id="param-stl" value="3.0" step="0.5" min="1">
+                        </div>
+                        <div class="param-group">
+                            <label for="param-if">IF Kontam.:</label>
+                            <input type="number" id="param-if" value="0.05" step="0.01" min="0.01" max="0.2">
+                        </div>
+                        <div class="param-group">
+                            <label for="param-z">Z Eşiği:</label>
+                            <input type="number" id="param-z" value="2.5" step="0.5" min="1">
+                        </div>
+                        <button class="btn btn-primary" id="btn-update-params">Uygula</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard İçeriği -->
+            <div id="dashboard-tab" class="tab-content active">
+                <!-- KPI Kartları -->
+                <section class="kpi-grid">
+                    <div class="kpi-card glass animate-fade-in">
+                        <div class="kpi-header">
+                            <span class="kpi-title">Toplam Fatura (180 Gün)</span>
+                            <span class="kpi-icon total-cost-icon"></span>
+                        </div>
+                        <div class="kpi-value" id="kpi-total-cost">$0.00</div>
+                        <div class="kpi-footer text-positive">✓ Veri tabanı aktif</div>
+                    </div>
+                    <div class="kpi-card glass animate-fade-in" style="animation-delay: 0.1s;">
+                        <div class="kpi-header">
+                            <span class="kpi-title">Günlük Ort. Harcama</span>
+                            <span class="kpi-icon avg-cost-icon"></span>
+                        </div>
+                        <div class="kpi-value" id="kpi-avg-cost">$0.00</div>
+                        <div class="kpi-footer">Standart sapma: ±$22.40</div>
+                    </div>
+                    <div class="kpi-card glass alert-card animate-fade-in" style="animation-delay: 0.2s;">
+                        <div class="kpi-header">
+                            <span class="kpi-title">Aktif Anomaliler</span>
+                            <span class="kpi-icon anomaly-icon"></span>
+                        </div>
+                        <div class="kpi-value" id="kpi-anomalies">0</div>
+                        <div class="kpi-footer" id="kpi-anomalies-footer">Enjekte edilen referans: 0</div>
+                    </div>
+                    <div class="kpi-card glass animate-fade-in" style="animation-delay: 0.3s;">
+                        <div class="kpi-header">
+                            <span class="kpi-title">En Yüksek F1-Skoru</span>
+                            <span class="kpi-icon efficiency-icon"></span>
+                        </div>
+                        <div class="kpi-value" id="kpi-efficiency">0.0%</div>
+                        <div class="kpi-footer">STL, Isolation Forest, Z-Score karşılaştırma</div>
+                    </div>
+                </section>
+
+                <!-- Maliyet Zaman Çizelgesi Kartı -->
+                <div class="card glass chart-card animate-fade-in" style="animation-delay: 0.4s;">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <h3>AWS Günlük Maliyet Çizelgesi ve Tespit Edilen Anomaliler</h3>
+                            <p class="card-subtitle">Maliyet sıçramalarını ve tespit algoritmalarını grafik üzerinde izleyin</p>
+                        </div>
+                        <div class="chart-toggles">
+                            <label class="toggle-control">
+                                <input type="checkbox" id="toggle-gt" checked>
+                                <span class="toggle-label gt-label">Gerçek Durum (Referans)</span>
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="toggle-stl" checked>
+                                <span class="toggle-label stl-label">STL Decomposition</span>
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="toggle-iforest" checked>
+                                <span class="toggle-label iforest-label">Isolation Forest</span>
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="toggle-zscore" checked>
+                                <span class="toggle-label zscore-label">Z-Score</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="costTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Alt Kısım: Hizmet Dağılımı ve Kritik Alarmlar -->
+                <div class="double-column-grid">
+                    <!-- Donut Grafik -->
+                    <div class="card glass animate-fade-in" style="animation-delay: 0.5s;">
+                        <div class="card-header">
+                            <h3>Bulut Kaynak Maliyet Dağılımı</h3>
+                            <p class="card-subtitle">AWS servislerine göre harcama yapısı</p>
+                        </div>
+                        <div class="chart-wrapper donut-wrapper">
+                            <canvas id="serviceSplitChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Alarmlar Akışı -->
+                    <div class="card glass animate-fade-in" style="animation-delay: 0.6s;">
+                        <div class="card-header">
+                            <h3>Kritik Anomali Akışı</h3>
+                            <p class="card-subtitle">Gerçek zamanlı uyarılar ve kök neden atıfları</p>
+                        </div>
+                        <div class="alerts-feed-container" id="recent-alerts-feed">
+                            <div class="feed-empty">Henüz yüklenmiş anomali bulunmuyor</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Analizi İçeriği -->
+            <div id="analysis-tab" class="tab-content">
+                <div class="double-column-grid">
+                    <!-- Bar Grafik -->
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>Algoritma Performans Karşılaştırması</h3>
+                            <p class="card-subtitle">Sisteme enjekte edilen anomalilere göre doğruluk analizi</p>
+                        </div>
+                        <div class="chart-wrapper metrics-wrapper">
+                            <canvas id="metricsComparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- İstatistikler Tablosu -->
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>Performans İstatistikleri</h3>
+                            <p class="card-subtitle">Karışıklık matrisi sonuçları ve başarı oranları</p>
+                        </div>
+                        <div class="metrics-details-table" id="metrics-table-container">
+                            <table class="premium-table">
+                                <thead>
+                                    <tr>
+                                        <th>Model</th>
+                                        <th>Kesinlik (Precision)</th>
+                                        <th>Duyarlılık (Recall)</th>
+                                        <th>F1-Skoru</th>
+                                        <th>Doğruluk Matrisi (TP / FP / FN)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metrics-table-body">
+                                    <!-- Dinamik veri -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="info-alert glass">
+                            <div class="info-icon">i</div>
+                            <div class="info-text">
+                                <strong>Metriklerin Anlamı:</strong>
+                                <ul>
+                                    <li><strong>Kesinlik (Precision):</strong> Model tarafından üretilen alarmların ne kadarı gerçek anomaliydi? (Yanlış alarm oranını düşürür).</li>
+                                    <li><strong>Duyarlılık (Recall):</strong> Gerçek anomalilerin ne kadarı model tarafından yakalanabildi? (Gözden kaçırma oranını düşürür).</li>
+                                    <li><strong>F1-Skoru:</strong> Kesinlik ve Duyarlılığın harmonik ortalamasıdır. Yüksek F1 skoru modelin genel başarısını gösterir.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Precision-Recall Eğrisi Kartı (Rapor Bölüm 5 İsteri) -->
+                <div class="card glass animate-fade-in" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Precision-Recall (Kesinlik-Duyarlılık) Eğrisi</h3>
+                        <p class="card-subtitle">Eşik (Threshold) çarpanları değiştirilerek hesaplanan STL ve Z-Skoru algoritmalarının karşılaştırmalı PR Eğrisi (Rapor Bölüm 5)</p>
+                    </div>
+                    <div class="chart-wrapper" style="height: 380px;">
+                        <canvas id="prCurveChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- STL Decompositon Bölümü -->
+                <div class="card glass stl-decomposition-card">
+                    <div class="card-header">
+                        <h3>Matematiksel Ayrıştırma: STL Decomposition</h3>
+                        <p class="card-subtitle">Maliyet = Trend + Mevsimsellik + Artık (Anomali tespiti Artık/Residual üzerinde yapılır)</p>
+                    </div>
+                    <div class="stl-grid">
+                        <div class="stl-chart-item">
+                            <span class="stl-label-tag trend-tag">Trend Bileşeni (Uzun Vade)</span>
+                            <div class="chart-wrapper-mini"><canvas id="stlTrendChart"></canvas></div>
+                        </div>
+                        <div class="stl-chart-item">
+                            <span class="stl-label-tag seasonal-tag">Haftalık Mevsimsel Bileşen</span>
+                            <div class="chart-wrapper-mini"><canvas id="stlSeasonalChart"></canvas></div>
+                        </div>
+                        <div class="stl-chart-item">
+                            <span class="stl-label-tag residual-tag">Artık (Residual) / Gürültü Bileşeni</span>
+                            <div class="chart-wrapper-mini"><canvas id="stlResidualChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomali Günlüğü Tablosu -->
+            <div id="alerts-tab" class="tab-content">
+                <div class="card glass">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <h3>Tarihsel Anomali Günlüğü ve Kök Neden Analizi</h3>
+                            <p class="card-subtitle">Modeller tarafından işaretlenen tüm maliyet sıçramalarını ve nedenlerini inceleyin</p>
+                        </div>
+                        <div class="filter-controls">
+                            <label for="filter-model">Tespite göre filtrele:</label>
+                            <select id="filter-model" class="glass-select">
+                                <option value="any">Tüm Alarmlar</option>
+                                <option value="stl">Yalnızca STL</option>
+                                <option value="iforest">Yalnızca Isolation Forest</option>
+                                <option value="zscore">Yalnızca Z-Score</option>
+                                <option value="gt">Yalnızca Referans (Gerçek Durum)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="premium-table font-outfit" id="alerts-log-table">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Toplam Maliyet</th>
+                                    <th>Tespit Eden Model</th>
+                                    <th>Şüpheli Servis</th>
+                                    <th>Güven Derecesi</th>
+                                    <th>Kök Neden Açıklaması</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-log-table-body">
+                                <!-- Dinamik veri -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simülatör Ekranı -->
+            <div id="simulator-tab" class="tab-content">
+                <div class="double-column-grid">
+                    <!-- Ekleme Formu -->
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>Yapay Maliyet Anomalisi Enjekte Et</h3>
+                            <p class="card-subtitle">Sunum sırasında bulut arıza senaryoları simüle edin ve modellerin tepkisini izleyin</p>
+                        </div>
+                        <form id="simulator-form" class="premium-form">
+                            <div class="form-group">
+                                <label for="sim-date">Hedef Tarih:</label>
+                                <input type="date" id="sim-date" required class="glass-input">
+                                <span class="form-help">Veri kümesi sınırları dahilinde bir tarih seçin (Kasım 2025 - Mayıs 2026).</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-service">Etkilenen AWS Servisi:</label>
+                                <select id="sim-service" required class="glass-select">
+                                    <option value="AmazonEC2">AmazonEC2 (Sanal Sunucu)</option>
+                                    <option value="AmazonRDS">AmazonRDS (İlişkisel Veritabanı)</option>
+                                    <option value="AmazonS3">AmazonS3 (Dosya Depolama)</option>
+                                    <option value="AmazonDynamoDB">AmazonDynamoDB (NoSQL Veritabanı)</option>
+                                    <option value="AWSDataTransfer">AWSDataTransfer (Ağ Veri Aktarımı)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-spike">Maliyet Artış Miktarı ($):</label>
+                                <input type="number" id="sim-spike" min="50" max="5000" value="300" required class="glass-input">
+                                <span class="form-help">Eklenecek ekstra günlük ücret. Eşikleri aşması için en az $200 önerilir.</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-reason">Hata Açıklaması / Kök Neden:</label>
+                                <input type="text" id="sim-reason" placeholder="Örn: Yedekleme betiği sonsuz döngüye girip aşırı veri yazdı" required class="glass-input">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary btn-block" id="btn-inject-anomaly">Yapay Maliyet Sıra dışılığı Enjekte Et</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Şablonlar ve Reset -->
+                    <div class="card glass">
+                        <div class="card-header">
+                            <h3>Hazır Arıza Senaryoları</h3>
+                            <p class="card-subtitle">Tek tıkla anında test anomalileri oluşturun</p>
+                        </div>
+                        <div class="preset-grid">
+                            <button class="btn btn-outline preset-btn" data-service="AmazonEC2" data-spike="1500" data-reason="Kapatılması unutulan g5.24xlarge GPU sunucu üzerinde AI modeli eğitilmeye devam etti.">
+                                <strong>Kapatılmamış EC2 Sunucusu</strong>
+                                <span>+$1500 EC2 Sıçraması</span>
+                            </button>
+                            <button class="btn btn-outline preset-btn" data-service="AmazonS3" data-spike="600" data-reason="Yedekleme scripti çakışarak her 5 dakikada bir ham veritabanı loglarını tekrar yazdı.">
+                                <strong>S3 Sonsuz Yedekleme Döngüsü</strong>
+                                <span>+$600 S3 Sıçraması</span>
+                            </button>
+                            <button class="btn btn-outline preset-btn" data-service="AWSDataTransfer" data-spike="1200" data-reason="Veritabanının harici bir sunucuya sıkıştırılmadan kopyalanması sonucu aşırı dış trafik.">
+                                <strong>Ağ Veri Transfer Patlaması</strong>
+                                <span>+$1200 Ağ Sıçraması</span>
+                            </button>
+                            <button class="btn btn-outline preset-btn" data-service="AmazonRDS" data-spike="450" data-reason="Yedek veritabanı replikası oluşturulup devre dışı bırakılması unutuldu.">
+                                <strong>Veritabanı RDS Sızıntısı</strong>
+                                <span>+$450 RDS Sıçraması</span>
+                            </button>
+                        </div>
+                        <div class="reset-area">
+                            <hr class="divider">
+                            <h4>Veri Tabanı Operasyonları</h4>
+                            <p class="card-subtitle">Eklediğiniz tüm özel anomalileri siler ve sistemi ilk haline geri döndürür.</p>
+                            <button class="btn btn-danger btn-block" id="btn-reset-db">Verileri İlk Haline Sıfırla</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bildirim Penceresi (Modal Popup) -->
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-content glass">
+            <h3 id="modal-title">Başarılı</h3>
+            <p id="modal-message">Anomali başarıyla enjekte edildi.</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="btn-close-modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
