@@ -4,10 +4,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 def generate_synthetic_cur(start_date_str="2025-11-27", num_days=180, output_path="aws_cur_synthetic.csv"):
-    """
-    Generates synthetic AWS Cost and Usage Report (CUR) data with trend, seasonality,
-    noise, and pre-injected anomalies for testing.
-    """
+
     np.random.seed(42)  # For reproducible synthetic data
     
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
@@ -160,9 +157,7 @@ def load_daily_costs(csv_path="aws_cur_synthetic.csv"):
     return daily_df
 
 def inject_dynamic_anomaly(csv_path, date_str, service, spike_amount, reason):
-    """
-    Dynamically injects an anomaly into the existing CSV file at the specified date.
-    """
+
     if not os.path.exists(csv_path):
         generate_synthetic_cur(output_path=csv_path)
         

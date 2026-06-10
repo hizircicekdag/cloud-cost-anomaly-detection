@@ -1,9 +1,7 @@
 import numpy as np
 
 def calculate_metrics(y_true, y_pred):
-    """
-    Computes Precision, Recall, F1-Score, and Confusion Matrix values.
-    """
+
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     
@@ -29,9 +27,7 @@ def calculate_metrics(y_true, y_pred):
     }
 
 def evaluate_models(df_daily, stl_results, iforest_results, zscore_results):
-    """
-    Evaluates the three anomaly detection methods against ground truth labels.
-    """
+
     y_true = df_daily['anomaly/IsAnomaly'].values
     
     stl_metrics = calculate_metrics(y_true, stl_results['anomaly_stl'].values)
